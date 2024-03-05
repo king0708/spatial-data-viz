@@ -28,7 +28,7 @@ rather than give a full tutorial on the basics of geospatial data though we will
 review some basic concepts quickly. Therefore we may not cover some important 
 concepts that are important for spatial data analysis, For more in-depth learning 
 I recommend reading "Geocomputation with R" by Lovelace et al. (2024), a free 
-ebook available here: https://r.geocompx.org/.
+ebook available here: [](https://r.geocompx.org/).
 
 # Goals and Learning Outcomes 
 
@@ -117,6 +117,11 @@ that is provided by the US EPA: [California Level IV Ecoregions](https://www.epa
 You'll need to download and unzip the data file into your working directory for
 the following code to work. 
 
+We will use the `read_sf` function from the `sf` package, which loads the 
+shapefile as a `tidyverse` tibble. You can also use `st_read` to load shapefiles,
+but it contains more messages and loads the data as a base R data.frame instead
+of a tibble.
+
 ::: {.callout-important}
 When reading in a shapefile, you use the filename with the `.shp` 
 extension, but the associated files from the zipped folder are required for the
@@ -153,22 +158,29 @@ CA_counties_sf <- tigris::counties(state = "CA", progress_bar = FALSE)
 Now we'll see some useful features of the `sf` package and how to access and set
 important spatial information from your data. 
 
-### Basics of `sf` data types
-
-talk about "attribute tables" 
+Most functions in `sf` start with `st_[function_name]`, which stands for 
+*spatial transformation*. These functions perform various spatial data operations 
+so we can manipulate our data for better visualizations. 
 
 ### Identify and set the CRS
 
-Essential that the CRS of your spatial data match
+The **Coordinate Reference System (CRS)** is an important piece of information 
+that contains the instructions for how to display the spatial data. It tells R
+where the points are located and how to project the points from a spherical (or ellipsoidal) 
+3D object to a 2D surface. See [this](https://datacarpentry.org/organization-geospatial/03-crs.html)
+data carpentry lesson, [Section 2.4](https://r.geocompx.org/spatial-class#crs-intro) in 
+Geocomputation in R, or [this](https://www.esri.com/arcgis-blog/products/arcgis-pro/mapping/gcs_vs_pcs/) post from ESRI for more information on CRS's. 
 
-When you read in data from a shapefile or a package the data will usually already
-have the CRS information associated with the data. 
+When you read in data from a shapefile or a package the data should already
+have the CRS information associated with the data. If it is an unusual CRS you 
+should check the metadata for additional details about the CRS.
 
 When you are reading in data from a `.csv` file, you need to set the CRS yourself 
 when you convert your `data.frame` into an `sf` object. Thus, you'll need to check the 
 metadata to find the appropriate CRS. 
 
-You'll often see lat/long data use the WGS84 CRS, which is a geographic coordinate reference system. 
+You'll often see lat/long data use the WGS84 CRS, which is a geographic (unprojected) 
+coordinate reference system. This is the CRS used by the `site_df`. 
 
 An easy way to specify this is to use the **EPSG** code (European Petroleum Survey Group), 
 which references a database of the associated geodetic parameters for common CRS. 
@@ -207,6 +219,12 @@ object:
 
 We can also access this info with some common `sf` functions:
 
+- `st_crs` to check the CRS of the object
+
+- `st_bbox` retrieves the bounding box around the entire object 
+
+- `st_geometry_type` identifies the geometry of each observation/row in the dataset
+
 ```{r}
 # get the crs
 st_crs(site_sf)
@@ -217,7 +235,14 @@ st_bbox(site_sf)
 st_geometry_type(site_sf)
 ```
 
-Now we need to check the CRS for the other datasets to see if they match: 
+In addition to the `sf` operations, objects of class `sf` usually function very
+similarly to other `tibbles` or `data.frames` and you can pretty much perform 
+operations on these objects as usual. However, the `geometry` column can complicate
+some things, and if you want to remove it you need to call `st_drop_geometry`. 
+
+When working with multiple data sources, it is important to have them in the 
+same CRS for visualizing or they won't map properly. So, we need to check the CRS 
+for the other datasets to see if they match: 
 
 ```{r}
 # crs for ecoregions
@@ -236,10 +261,8 @@ same time.
 We can use the `st_transform` function to project our data into the same CRS.
 
 But which CRS should we choose for our map making? It depends on what you are doing... 
-The site data and state data are in geographic CRS (not projected) while the ecoregion 
-data are in the USA Contiguous Albers Equal Area Conic USGS version projected CRS. 
-If we're making a map for a web-based application, those often use geographic CRS
-like WGS84 (googlemaps, openstreetmap) but for a static map it may make sense to 
+there are projections that preserve area, distance, angles, so you will need to 
+decide based on what is important in your situation. For a static map it may make sense to 
 use a projection more specific to your area or goal (e.g. equal area). For simplicity, 
 today I'll transform the state and site data to the CRS of the ecoregion data. 
 
@@ -258,17 +281,17 @@ ca_proj_sf <- states_proj_sf %>%
 ```
 
 There are some sites that are outside the state of California, and I only want to
-map the California locations. We can use the state outline to filter our site 
-data to just include the sites within our area of interest: 
+map the California locations. While we could filter based on the `state` column 
+in the dataset, sometimes you won't have that. Another way to filter is to use 
+the state outline to filter our site data to just include the sites within our 
+area of interest: 
 
 ```{r}
-str(site_proj_sf)
 unique(site_proj_sf$state) 
 
 site_ca_proj_sf <- site_proj_sf %>% 
   st_filter(ca_proj_sf, .predicate = st_covered_by)
 
-str(site_ca_proj_sf)
 unique(site_ca_proj_sf$state)
 
 ```
@@ -291,23 +314,83 @@ colnames(site_ecoreg_sf)
 
 ```
 
+There are many other spatial operations you can perform with the `sf` package. 
+For additional details you can see [Section 4.2](https://r.geocompx.org/spatial-operations)
+of `Geocomputation in R`. Geometry operations are covered in Ch. 5. 
+
 ## Making the map
 
 Finally it's time to make our map! One of the simplest ways to do this is to 
-use `ggplot2` which works well with `sf` objects. 
-
+use `ggplot2` which works well with `sf` objects. To plot `sf` objects, we use 
+the `geom_sf` instead of `geom_point` or `geom_line` that you might use with 
+graphs or figures in `ggplot2`. 
 
 ```{r}
-#TODO build this map out slowly, one element at a time
-
-ggplot() + # don't specify data here since we have multiple data sets to plot
-  geom_sf(data = ca_proj_sf, fill = NA) + # must specify "data = " or it will throw an error
-  geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME)) + # like other data you can set fill 
-  geom_sf(data = site_ca_proj_sf) +
-  scale_fill_discrete(name = "US L3 Ecoregion") +
-  guides(fill = guide_legend(ncol = 1, title.position = "top")) +
-  theme_bw() 
+ggplot(data = ca_proj_sf) +
+  geom_sf() 
 ```
+
+When adding multiple layers, I usually specify the data in the `geom_sf` call so
+it is a bit more clear what each call is plotting. However, this means you must
+add `data = ` before the data type or it will throw an error. 
+
+```{r}
+ggplot() + # don't specify data here since we have multiple data sets to plot
+  geom_sf(data = ca_proj_sf) + # must specify "data = " or it will throw an error
+  geom_sf(data = ecoreg_sf) + 
+  geom_sf(data = site_ca_proj_sf)
+```
+
+One of the things I like about mapping with `ggplot` is that if you are familiar
+with it already, modifying the plot appearance is very similar so you don't have
+to learn many new things to visualize your data. For example, you can set fill 
+and color in the same way via the aesthetics or in the main call to `geom_sf`. 
+
+```{r}
+ggplot() + # don't specify data here since we have multiple data sets to plot
+  geom_sf(data = ca_proj_sf, fill = NA) + # specify no fill
+  geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME), color = "grey40") + # like other data you can set fill 
+  geom_sf(data = site_ca_proj_sf) +
+  scale_fill_discrete(name = "Ecoregion") +
+  theme_bw() 
+
+```
+
+When visualizing the data, you can see that it will scale to automatically include
+all of the data plotted. However, here we may want to focus in on the sites since 
+there are no sites in norther California. Normally to modify the extent of the 
+plot with `ggplot` you can use `coord_cartesian`, but with `geom_sf` you have 
+to use `coord_sf`. You can also use `scale_x_continuous` or `scale_y_continuous`
+to set limits for each axis as well. 
+
+```{r}
+# find extent of sites to get x and y limits
+st_bbox(site_ca_proj_sf)
+
+# with coord_sf
+ggplot() + # don't specify data here since we have multiple data sets to plot
+  geom_sf(data = ca_proj_sf, fill = NA) + # specify no fill
+  geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME), color = "grey40") + # like other data you can set fill 
+  geom_sf(data = site_ca_proj_sf) +
+  scale_fill_discrete(name = "Ecoregion") +
+  theme_bw() + 
+  coord_sf(xlim = c(-2171214, -1733924), ylim = c(1424401, 1802929))
+
+# with scale_*_continuous
+ggplot() + # don't specify data here since we have multiple data sets to plot
+  geom_sf(data = ca_proj_sf, fill = NA) + # specify no fill
+  geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME), color = "grey40") + # like other data you can set fill 
+  geom_sf(data = site_ca_proj_sf) +
+  scale_fill_discrete(name = "Ecoregion") +
+  theme_bw() + 
+  scale_x_continuous(limits = c(-2171214, -1733924)) +
+  scale_y_continuous(limits = c(1424401, 1802929))
+
+```
+
+Zooming in is nice, but it does mean you lose some geographic context for the broader 
+region. In Part III I will show you how to create an inset map so you can zoom in
+on a focal region as well as include a larger region for context.
 
 You can also use `facet_wrap()` to split your map into smaller maps with any of your variables.
 
@@ -316,10 +399,11 @@ ggplot() + # don't specify data here since we have multiple data sets to plot
   geom_sf(data = ca_proj_sf, fill = NA) + # must specify "data = " or it will throw an error
   geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME)) + # like other data you can set fill 
   geom_sf(data = site_ca_proj_sf) +
-  scale_fill_discrete(name = "US L3 Ecoregion") +
-  guides(fill = guide_legend(ncol = 1, title.position = "top")) +
+  scale_fill_discrete(name = "Ecoregion") +
   theme_bw() +
-  facet_wrap(~desert)
+  facet_wrap(~desert) +
+  coord_sf(xlim = c(-2171214, -1733924), ylim = c(1424401, 1802929))
+
 
 ```
 
@@ -332,7 +416,8 @@ the `patchwork` or `cowplot` package.
 
 Basemaps provide important geographical context for your data and can serve as 
 an important visual references for your maps. In GIS programs it is often pretty
-easy to add a basemap layer, but in R there are a few additional steps and are produced by various sources 
+easy to add a basemap layer, but in R there are a few additional steps and different
+packages needed.
 
 ## My Favorite Basemap Providers, Packages and Functions
 
@@ -345,6 +430,7 @@ Below I list the providers of various basemaps
 **Basemap Data Providers**:
 
 *: requires registration but has a free tier
+
 **: paid service
 
 - OpenStreetMap
@@ -382,6 +468,8 @@ My favorites:
 
 **Other Packages to Examine**
 
+- [`ceramic`](https://hypertidy.github.io/ceramic/): another package for webmap tiles, defaults to Mapbox map with other options; visualize with `terra`
+
 - [`ggmap`](https://github.com/dkahle/ggmap): requires google maps API key to use, even if tile provider doesn't require one; visualizes with `ggplot`; good for getting Google Maps
 
 - [`mapboxapi`](https://walker-data.com/mapboxapi/): requires Mapbox account (there is a free tier)
@@ -394,11 +482,9 @@ My favorites:
 
 - [`basemaps`](https://jakob.schwalb-willmann.de/basemaps/): many formats to download basemaps, but removed from CRAN and currently down't work for me 
 
-- [`rgooglemaps`](https://github.com/markusloecher/rgooglemaps)
+- [`rgooglemaps`](https://github.com/markusloecher/rgooglemaps): another way to access google maps
 
-- [`ceramic`](https://hypertidy.github.io/ceramic/)
-
-- [`mapsapi`](https://michaeldorman.github.io/mapsapi/)
+- [`mapsapi`](https://michaeldorman.github.io/mapsapi/): another interface to google maps API
 
 - [`ggOceanMaps`](https://mikkovihtakari.github.io/ggOceanMaps/): designed for ocean sciences, visualizes with `ggplot2`
 
@@ -409,7 +495,24 @@ My favorites:
 This usually requires you to set an extent or bounding box for your download, as 
 well as specify the zoom level you want. 
 
-[Check - the zoom level can influence whether your output map looks grainy or not]
+The zoom is important as if you specify one that is too low (coarse, low resolution),
+your basemap may appear fuzzy/blurred but if it is too high (fine, high resolution) 
+it may take a very long time to retrieve the necessary tiles. 
+
+This table lists some appropriate zoom levels, obtained from the 
+[OpenStreetMap wiki](https://wiki.openstreetmap.org/wiki/Zoom_levels):
+
+|Zoom | # Tiles | Example Area to Represent |
+|-----|---------|---------------------------|
+| 0   | 1       | Whole World       |
+| 3   | 64      | Largest Country   |
+| 5 | 1024 | Large African Country |
+| 6 | 4096 | Large European Country |
+| 7 | 16384 | Small country, US State |
+| 10 | 1048576 | Metropolitan Area |
+
+They go higher, but this gives you a sense of how many more tiles there are to
+download at different zoom levels. 
 
 ### Using `ggspatial` 
 
@@ -475,7 +578,7 @@ call to `ggplot()`.
 
 ggplot(data = ca_proj_sf) + # specify data here to set CRS 
   ggspatial::annotation_map_tile(type = "osm", zoom = 6) + 
-  geom_sf(fill = NA) + 
+  geom_sf(fill = "transparent") + 
   geom_sf(
     data = site_ecoreg_sf, 
     aes(color = US_L3NAME)
@@ -489,14 +592,22 @@ ggplot(data = ca_proj_sf) + # specify data here to set CRS
   )
 ```
 
-Now the map is back in the projection of the data, which is helpful if you don't want to be stuck with only one option for the CRS of your map. 
+Now the map is back in the projection of the data, which is helpful if you don't 
+want to be stuck with only one option for the CRS of your map. 
 
 ::: {.callout-caution}
-If you are reprojecting basemap tiles that include text, you may note that the
-text is blurry or not as high-resolution. 
+I am still figuring out how R does this under the hood. If the above code 
+involves reprojecting the basemap tiles, what I suspect, as opposed to downloading 
+the tiles in a different CRS I'd be careful as reprojecting involves resampling
+the raster into a new grid, which may slightly alter the appearance of the basemap.
 :::
 
 ### Using `maptiles`
+
+`maptiles` has different basemap options than `ggspatial`. See the help for `get_tiles` 
+to see all of the options, some of which do require an API key. The default is
+OpenStreetMap.
+
 
 ```{r}
 ca3857 <- st_transform(ca_proj_sf, "epsg:3857")
@@ -557,6 +668,22 @@ ggplot(data = ca_proj_sf) + # specify data here to set CRS
   )
 
 ```
+
+You can also do this with the `maptiles` package using the `create_provider` function:
+
+```{r}
+#| eval: false 
+
+# code not run, shown as example: 
+opentopomap <- create_provider(
+  name = "otm",
+  url = "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  sub = c("a", "b", "c"),
+  citation = "map data: © OpenStreetMap contributors, SRTM | map style: © OpenTopoMap (CC-BY-SA)"
+)
+
+```
+
 
 **Places to Retrieve Basemaps**
 
@@ -693,11 +820,13 @@ ggplot(data = ca_proj_sf) + # specify data here to set CRS
     ) +
   ggspatial::annotation_north_arrow(
     pad_y = unit(1, "cm"),
-    height = unit(0.75, "cm"),
-    width = unit(0.75, "cm"),
+    pad_x = unit(.75, "cm"),
+    height = unit(1, "cm"),
+    width = unit(1, "cm"),
     style = ggspatial::north_arrow_fancy_orienteering(
-      line_col = "grey20",
-      fill = c("white", "grey20")
+      line_col = "white",
+      text_col = "white",
+      fill = c("white", "black")
     ))
 
 ```
@@ -723,6 +852,14 @@ plotting that on top of your basemap.
 # Part III: Tips and Tricks
 
 ## Making an inset map
+
+As mentioned above, there may be times when you want to focus on a small region
+but provide context for the larger region. An inset map can help with this, and 
+one way to do this in R is to create two separate maps and then combine them. I 
+use the `cowplot` package to layer them. 
+
+Here I am modifying the California ecoregion shapefile to highlight the central
+drylands of California. 
 
 ```{r dryland-ecoreg}
 
@@ -756,7 +893,7 @@ dryland_eco_3857 <- st_transform(all_eco, crs = "epsg:3857")
 
 ```
 
-
+This code creates two separate maps, then combines them with `cowplot`. 
 ```{r}
 #| fig-cap: "Map of central California drylands including the San Joaquin Desert. Basemap imagery from ESRI "
 #| message: false
@@ -919,17 +1056,14 @@ or linewidth and colors for polygons.
 
 ```{r}
 # set defaults for point geometry
-update_geom_defaults(
-  "point", list(shape = 21, color = "black", fill = "grey20", size = 2)
-)
-
+update_geom_defaults("point", list(shape = 21, color = "black", fill = "grey20", size = 2))
 ```
 
 ```{r}
 ggplot() + # don't specify data here since we have multiple data sets to plot
   geom_sf(data = ecoreg_sf, aes(fill = stringr::str_wrap(US_L3NAME, 35)), color = NA) + 
   geom_sf(data = site_ca_proj_sf, alpha = 0.5) +
-   geom_sf(data = ca_proj_sf, fill = NA, linewidth = 1, color = "grey40") + 
+  geom_sf(data = ca_proj_sf, fill = NA, linewidth = 1, color = "grey40") + 
   guides(fill = guide_legend(ncol = 1, title.position = "top")) +
   ecoreg_theme
 
@@ -965,6 +1099,8 @@ As an example, let's play around with the California ecoregions some more.
 - [`leaflet`](https://rstudio.github.io/leaflet/): interactive plotting, can use with mapview to create a static map supposedly but best for interactive maps
 
 - [`rayshader`](https://www.rayshader.com/): make 3D plots in R
+
+- [`tiler`](https://docs.ropensci.org/tiler/): create your own map tiles, requires installation of Python
 
 # References
 
