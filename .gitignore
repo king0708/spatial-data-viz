@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# map files
+rosm.cache/
+
+# output files
+sf_basemap_workshop_ecodatasci_files/

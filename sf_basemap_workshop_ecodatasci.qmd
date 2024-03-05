@@ -127,7 +127,7 @@ message.
 
 ```{r load-data-2}
 # read in data from shapefile
-ecoreg_sf <- sf::read_sf("data/shapefiles/ca_eco_l4.shp")
+ecoreg_sf <- sf::read_sf("data/ca_ecoregion_shape/ca_eco_l4.shp")
 ```
 
 ### Method 3: From a package
