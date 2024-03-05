@@ -37,6 +37,7 @@ The primary purpose is to demonstrate how to use R to visualize spatial data, ra
 - `tidyterra`
 - `tigris`
 - `cowplot`
+- `prettymapr`
   
 Try loading the packages with `library(package_name)` to make sure that all of the dependencies installed correctly - there may be some additional packages you need to install separately
 
