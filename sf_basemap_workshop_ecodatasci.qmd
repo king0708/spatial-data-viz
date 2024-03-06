@@ -445,6 +445,9 @@ Below I list the providers of various basemaps
 
 - Google
 
+
+![](data/basemap_types.png)
+
 **Basemap R Packages**
 
 Make it "easy" to download and bring in the basemap tiles to R. In reality, I have 
@@ -832,7 +835,6 @@ ggplot(data = ca_proj_sf) + # specify data here to set CRS
 ```
 
 
-
 ## Exercises
 
 (@) Use the `tigris` package and either `ggspatial` or `maptiles` package to download a 
@@ -1080,7 +1082,99 @@ modify multiple plots by only having to change your code in one place.
 
 As an example, let's play around with the California ecoregions some more. 
 
+Goal: Create a function to plot each ecoregion with a basemap
 
+Steps: 
+
+1. Create a template map 
+
+2. Identify the components that will vary for each ecoregion - these become 
+the arguments
+
+3. Replace the varying components with a variable 
+
+4. Put into function
+
+5. Create a list of arguments to run the function over 
+
+6. Pass the list to the function using `purrr::map`
+
+
+```{r}
+ca_l3_ecoreg <- unique(ecoreg_sf$US_L3NAME)
+
+ecoreg_sf_tmp <- filter(ecoreg_sf, US_L3NAME == ca_l3_ecoreg[1])
+
+ggplot(ecoreg_sf_tmp) +
+  geom_sf(aes(fill = US_L4NAME))
+
+# now get a basemap
+tmp_basemap <- get_tiles(ecoreg_sf_tmp, zoom = 7, provider = "Esri.WorldImagery")
+
+# add to plot
+ggplot(ecoreg_sf_tmp) +
+  geom_spatraster_rgb(data = tmp_basemap) +
+  geom_sf(aes(fill = US_L4NAME), alpha = 0.5, color = "black")
+
+```
+
+Now we need to turn this into a generic function
+
+```{r}
+
+plot_ecoreg <- function(ecoreg_name){
+  ecoreg_sf_tmp <- filter(ecoreg_sf, US_L3NAME == ecoreg_name)
+  tmp_basemap <- get_tiles(ecoreg_sf_tmp, zoom = 7, provider = "Esri.WorldImagery")
+  
+  ggplot(ecoreg_sf_tmp) +
+    geom_spatraster_rgb(data = tmp_basemap) +
+    geom_sf(aes(fill = US_L4NAME), alpha = 0.5, color = "black") 
+}
+
+```
+
+
+Let's test it out with our list
+
+```{r}
+
+plot_ecoreg(ca_l3_ecoreg[1])
+
+purrr::map(ca_l3_ecoreg[1:5], plot_ecoreg)
+
+```
+
+I'd like to add a title for each figure so we know which ecoregion it represents.
+
+```{r}
+
+plot_ecoreg <- function(ecoreg_name){
+  ecoreg_sf_tmp <- filter(ecoreg_sf, US_L3NAME == ecoreg_name)
+  tmp_basemap   <- get_tiles(ecoreg_sf_tmp, zoom = 7, provider = "Esri.WorldImagery")
+  title         <- ecoreg_sf_tmp$US_L3NAME
+  
+  ggplot(ecoreg_sf_tmp) +
+    geom_spatraster_rgb(data = tmp_basemap) +
+    geom_sf(aes(fill = US_L4NAME), alpha = 0.5, color = "black") +
+    ggtitle(title) +
+    theme_void() +
+    theme(legend.position = "none")
+}
+
+```
+
+Now let's try it again:
+
+```{r}
+purrr::map(ca_l3_ecoreg[1:5], plot_ecoreg)
+```
+
+
+This is pretty quick and dirty illustration of how to turn a simple map into a 
+function for faster and reproducible programming - but it's one of the big 
+perks of mapping in R. With just a couple lines of code we could make a map
+for all of the ecoregions of California - which would have taken way more 
+code if we had to make each map individually.  
 
 # Additional Resources 
 

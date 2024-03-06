@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Rachel King">
-<meta name="dcterms.date" content="2024-03-05">
+<meta name="dcterms.date" content="2024-03-06">
 
 <title>Spatial Data Visualization</title>
 <style>
@@ -157,7 +157,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">March 5, 2024</p>
+      <p class="date">March 6, 2024</p>
     </div>
   </div>
   
@@ -636,6 +636,7 @@ GEOGCRS["NAD83",
 <li><p><a href="https://www.mapbox.com/static-maps">Mapbox</a>*</p></li>
 <li><p>Google</p></li>
 </ul>
+<p><img src="data/basemap_types.png" class="img-fluid"></p>
 <p><strong>Basemap R Packages</strong></p>
 <p>Make it “easy” to download and bring in the basemap tiles to R. In reality, I have found that some packages are much easier than others to work with.</p>
 <p>My favorites:</p>
@@ -1235,6 +1236,160 @@ Tip
 <h2 class="anchored" data-anchor-id="functional-programming">Functional Programming</h2>
 <p>What if you want to make a lot of maps? Copying and pasting code is annoying and also leads to issues with reproducibility. If you are going to be making multiple maps that are very similar you can turn your call to <code>ggplot</code> into a function so that all you need to do is provide the data or other parameters you want to manipulate and save yourself many lines of code. This will also allow you to more easily modify multiple plots by only having to change your code in one place.</p>
 <p>As an example, let’s play around with the California ecoregions some more.</p>
+<p>Goal: Create a function to plot each ecoregion with a basemap</p>
+<p>Steps:</p>
+<ol type="1">
+<li><p>Create a template map</p></li>
+<li><p>Identify the components that will vary for each ecoregion - these become the arguments</p></li>
+<li><p>Replace the varying components with a variable</p></li>
+<li><p>Put into function</p></li>
+<li><p>Create a list of arguments to run the function over</p></li>
+<li><p>Pass the list to the function using <code>purrr::map</code></p></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>ca_l3_ecoreg <span class="ot">&lt;-</span> <span class="fu">unique</span>(ecoreg_sf<span class="sc">$</span>US_L3NAME)</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>ecoreg_sf_tmp <span class="ot">&lt;-</span> <span class="fu">filter</span>(ecoreg_sf, US_L3NAME <span class="sc">==</span> ca_l3_ecoreg[<span class="dv">1</span>])</span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ecoreg_sf_tmp) <span class="sc">+</span></span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> US_L4NAME))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="co"># now get a basemap</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>tmp_basemap <span class="ot">&lt;-</span> <span class="fu">get_tiles</span>(ecoreg_sf_tmp, <span class="at">zoom =</span> <span class="dv">7</span>, <span class="at">provider =</span> <span class="st">"Esri.WorldImagery"</span>)</span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a><span class="co"># add to plot</span></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ecoreg_sf_tmp) <span class="sc">+</span></span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_spatraster_rgb</span>(<span class="at">data =</span> tmp_basemap) <span class="sc">+</span></span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> US_L4NAME), <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"black"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>&lt;SpatRaster&gt; resampled to 501239 cells for plotting</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-28-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Now we need to turn this into a generic function</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>plot_ecoreg <span class="ot">&lt;-</span> <span class="cf">function</span>(ecoreg_name){</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>  ecoreg_sf_tmp <span class="ot">&lt;-</span> <span class="fu">filter</span>(ecoreg_sf, US_L3NAME <span class="sc">==</span> ecoreg_name)</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>  tmp_basemap <span class="ot">&lt;-</span> <span class="fu">get_tiles</span>(ecoreg_sf_tmp, <span class="at">zoom =</span> <span class="dv">7</span>, <span class="at">provider =</span> <span class="st">"Esri.WorldImagery"</span>)</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(ecoreg_sf_tmp) <span class="sc">+</span></span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_spatraster_rgb</span>(<span class="at">data =</span> tmp_basemap) <span class="sc">+</span></span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> US_L4NAME), <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"black"</span>) </span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s test it out with our list</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ecoreg</span>(ca_l3_ecoreg[<span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>&lt;SpatRaster&gt; resampled to 501239 cells for plotting</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>purrr<span class="sc">::</span><span class="fu">map</span>(ca_l3_ecoreg[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>], plot_ecoreg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>&lt;SpatRaster&gt; resampled to 501239 cells for plotting
+&lt;SpatRaster&gt; resampled to 500472 cells for plotting
+&lt;SpatRaster&gt; resampled to 500516 cells for plotting</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-30-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[2]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-30-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[3]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-30-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[4]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-30-5.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[5]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-30-6.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>I’d like to add a title for each figure so we know which ecoregion it represents.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>plot_ecoreg <span class="ot">&lt;-</span> <span class="cf">function</span>(ecoreg_name){</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>  ecoreg_sf_tmp <span class="ot">&lt;-</span> <span class="fu">filter</span>(ecoreg_sf, US_L3NAME <span class="sc">==</span> ecoreg_name)</span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  tmp_basemap   <span class="ot">&lt;-</span> <span class="fu">get_tiles</span>(ecoreg_sf_tmp, <span class="at">zoom =</span> <span class="dv">7</span>, <span class="at">provider =</span> <span class="st">"Esri.WorldImagery"</span>)</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>  title         <span class="ot">&lt;-</span> ecoreg_sf_tmp<span class="sc">$</span>US_L3NAME</span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(ecoreg_sf_tmp) <span class="sc">+</span></span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_spatraster_rgb</span>(<span class="at">data =</span> tmp_basemap) <span class="sc">+</span></span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> US_L4NAME), <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb80-9"><a href="#cb80-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(title) <span class="sc">+</span></span>
+<span id="cb80-10"><a href="#cb80-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_void</span>() <span class="sc">+</span></span>
+<span id="cb80-11"><a href="#cb80-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb80-12"><a href="#cb80-12" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now let’s try it again:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>purrr<span class="sc">::</span><span class="fu">map</span>(ca_l3_ecoreg[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>], plot_ecoreg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>&lt;SpatRaster&gt; resampled to 501239 cells for plotting
+&lt;SpatRaster&gt; resampled to 500472 cells for plotting
+&lt;SpatRaster&gt; resampled to 500516 cells for plotting</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[2]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-32-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[3]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-32-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[4]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-32-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+[[5]]</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="sf_basemap_workshop_ecodatasci_files/figure-html/unnamed-chunk-32-5.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>This is pretty quick and dirty illustration of how to turn a simple map into a function for faster and reproducible programming - but it’s one of the big perks of mapping in R. With just a couple lines of code we could make a map for all of the ecoregions of California - which would have taken way more code if we had to make each map individually.</p>
 </section>
 </section>
 <section id="additional-resources" class="level1">
