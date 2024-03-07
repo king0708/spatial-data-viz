@@ -349,7 +349,7 @@ and color in the same way via the aesthetics or in the main call to `geom_sf`.
 ```{r}
 ggplot() + # don't specify data here since we have multiple data sets to plot
   geom_sf(data = ca_proj_sf, fill = NA) + # specify no fill
-  geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME), color = "grey40") + # like other data you can set fill 
+  geom_sf(data = ecoreg_sf, aes(fill = US_L3NAME), color = "white") + # like other data you can set fill 
   geom_sf(data = site_ca_proj_sf) +
   scale_fill_discrete(name = "Ecoregion") +
   theme_bw() 
@@ -581,7 +581,7 @@ call to `ggplot()`.
 
 ggplot(data = ca_proj_sf) + # specify data here to set CRS 
   ggspatial::annotation_map_tile(type = "osm", zoom = 6) + 
-  geom_sf(fill = "transparent") + 
+  geom_sf(fill = NA) + 
   geom_sf(
     data = site_ecoreg_sf, 
     aes(color = US_L3NAME)
@@ -615,6 +615,8 @@ OpenStreetMap.
 ```{r}
 ca3857 <- st_transform(ca_proj_sf, "epsg:3857")
 ca_osm <- get_tiles(ca3857, crop = TRUE)
+
+ca_osm
 
 ggplot(data = ca3857) + 
   geom_spatraster_rgb(data = ca_osm, r = 1, g = 2, b = 3) +
@@ -826,6 +828,7 @@ ggplot(data = ca_proj_sf) + # specify data here to set CRS
     pad_x = unit(.75, "cm"),
     height = unit(1, "cm"),
     width = unit(1, "cm"),
+    which_north = "true",
     style = ggspatial::north_arrow_fancy_orienteering(
       line_col = "white",
       text_col = "white",
