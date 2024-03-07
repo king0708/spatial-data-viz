@@ -1028,7 +1028,7 @@ ecoreg_theme <- list(
   theme_bw(base_size = 14),
   scale_fill_manual(values = ecoreg_fill, name = "US L3 Ecoregion"),
   theme(
-    text             = element_text(family = "AvantGarde"),
+    text             = element_text(family = "Times"),
     panel.background = element_blank(), # use element_blank() to remove elements
     plot.background  = element_blank(),
     panel.border     = element_rect(colour = "grey92"),
