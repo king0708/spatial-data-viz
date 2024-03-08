@@ -51,3 +51,8 @@ See the “Installing” section for help with installation of the sf package at
 | California State Boundary | U.S. Census Bureau TIGER/Line Shapefiles. (2023). [](https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html) |
 
 
+# Materials
+
+* [Code]()
+
+* [Slides](https://docs.google.com/presentation/d/1dxWLQ5WqSNvMMwUxQfeZbcV1xiAYbjpf2GvZN4wLV64/edit?usp=sharing)

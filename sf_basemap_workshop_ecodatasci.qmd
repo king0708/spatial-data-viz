@@ -445,8 +445,7 @@ Below I list the providers of various basemaps
 
 - Google
 
-
-![](data/basemap_types.png)
+![Image: [maptiles package documentation](https://github.com/riatelab/maptiles)](data/basemap_types.png)
 
 **Basemap R Packages**
 
@@ -526,7 +525,7 @@ rosm::osm.types()
 ```
 
 
-```{r ggspatial-basemap}
+```{r}
 #| fig-width: 8
 
 map_nobase <- ggplot() + # don't specify data here since we have multiple data sets to plot
@@ -541,6 +540,12 @@ map_nobase <- ggplot() + # don't specify data here since we have multiple data s
   )
 
 map_nobase
+```
+
+
+```{r ggspatial-basemap}
+#| fig-width: 8
+#| fig-cap: "Basemap imagery: (C) OpenStreetMap contributors."
 
 map_wbase <- ggplot() + # don't specify data here since we have multiple data sets to plot
   ggspatial::annotation_map_tile(type = "osm", zoom = 6) + 
@@ -562,6 +567,8 @@ Compare the visual with and without the basemap. Aside from the basemap, can
 you notice any differences? 
 
 ```{r}
+#| fig-cap: "Basemap imagery: (C) OpenStreetMap contributors."
+
 library(patchwork)
 
 map_nobase + map_wbase
@@ -578,6 +585,7 @@ call to `ggplot()`.
 ```{r}
 #| fig-width: 8
 #| fig-height: 8
+#| fig-cap: "Basemap imagery: (C) OpenStreetMap contributors."
 
 ggplot(data = ca_proj_sf) + # specify data here to set CRS 
   ggspatial::annotation_map_tile(type = "osm", zoom = 6) + 
@@ -613,6 +621,8 @@ OpenStreetMap.
 
 
 ```{r}
+#| fig-cap: "Basemap imagery: (C) OpenStreetMap contributors."
+
 ca3857 <- st_transform(ca_proj_sf, "epsg:3857")
 ca_osm <- get_tiles(ca3857, crop = TRUE)
 
@@ -650,6 +660,7 @@ this is also required for the function call to run properly.
 ```{r}
 #| fig-width: 8
 #| fig-height: 8
+#| fig-cap: "Basemap imagery: © OpenStreetMap-Mitwirkende, SRTM |  Kartendarstellung: © OpenTopoMap (CC-BY-SA)"
 
 # the OpenTopo map tile provider
 open_topo <- "https://a.tile.opentopomap.org/${z}/${x}/${y}.png"
@@ -731,6 +742,7 @@ It is usually helpful to have a scalebar and north arrow for reference and orien
 ```{r}
 #| fig-width: 8
 #| fig-height: 8
+#| fig-cap: "Basemap ESRI World Imagery, Sources:  Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community."
 
 ca_osm <- get_tiles(ca_proj_sf, crop = TRUE, zoom = 6, provider = "Esri.WorldImagery")
 
@@ -745,10 +757,6 @@ ggplot(data = ca_proj_sf) + # specify data here to set CRS
   scale_color_discrete(name = "Level 3 Ecoregion") +
   guides(fill = guide_legend(ncol = 1, title.position = "top")) +
   theme_void() +
-  # theme(
-  #   legend.position = "bottom",
-  #   legend.direction = "vertical"
-  # ) +
   ggspatial::annotation_scale() +
   ggspatial::annotation_north_arrow()
 
@@ -803,6 +811,7 @@ the only way to change the number of breaks displayed
 ```{r}
 #| fig-width: 8
 #| fig-height: 8
+#| fig-cap: "Basemap ESRI World Imagery, Sources:  Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community."
 
 ggplot(data = ca_proj_sf) + # specify data here to set CRS 
   geom_spatraster_rgb(data = ca_osm) +
@@ -900,7 +909,7 @@ dryland_eco_3857 <- st_transform(all_eco, crs = "epsg:3857")
 
 This code creates two separate maps, then combines them with `cowplot`. 
 ```{r}
-#| fig-cap: "Map of central California drylands including the San Joaquin Desert. Basemap imagery from ESRI "
+#| fig-cap: "Map of central California drylands including the San Joaquin Desert. Basemap imagery from ESRI World Imagery, Sources:  Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community."
 #| message: false
 #| warning: false
 
@@ -1104,6 +1113,9 @@ the arguments
 
 
 ```{r}
+#| fig-cap: "Basemap ESRI World Imagery, Sources:  Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community."
+
+
 ca_l3_ecoreg <- unique(ecoreg_sf$US_L3NAME)
 
 ecoreg_sf_tmp <- filter(ecoreg_sf, US_L3NAME == ca_l3_ecoreg[1])
@@ -1140,6 +1152,7 @@ plot_ecoreg <- function(ecoreg_name){
 Let's test it out with our list
 
 ```{r}
+#| fig-cap: "Basemap ESRI World Imagery, Sources:  Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community."
 
 plot_ecoreg(ca_l3_ecoreg[1])
 
@@ -1169,6 +1182,8 @@ plot_ecoreg <- function(ecoreg_name){
 Now let's try it again:
 
 ```{r}
+#| fig-cap: "Basemap ESRI World Imagery, Sources:  Esri, DigitalGlobe, GeoEye, i-cubed, USDA FSA, USGS, AEX, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community."
+
 purrr::map(ca_l3_ecoreg[1:5], plot_ecoreg)
 ```
 
